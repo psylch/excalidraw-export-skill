@@ -1,0 +1,20 @@
+{
+  "name": "psylch-excalidraw-export-skill",
+  "owner": {
+    "name": "psylch"
+  },
+  "metadata": {
+    "description": "Generate Excalidraw diagrams from natural language and export to PNG/SVG images"
+  },
+  "plugins": [
+    {
+      "name": "excalidraw-export",
+      "source": "./",
+      "description": "End-to-end Excalidraw diagram generation and image export. Supports flowcharts, architecture diagrams, mind maps, sequence diagrams, ER diagrams, and more. Outputs PNG/SVG images via kroki.io rendering pipeline.",
+      "version": "1.0.0",
+      "category": "productivity",
+      "tags": ["excalidraw", "diagram", "visualization", "png", "svg", "export", "flowchart", "architecture"],
+      "homepage": "https://github.com/psylch/excalidraw-export-skill"
+    }
+  ]
+}

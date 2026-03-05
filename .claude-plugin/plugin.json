@@ -1,0 +1,12 @@
+{
+  "name": "excalidraw-export",
+  "description": "Generate Excalidraw diagrams and export to PNG/SVG images end-to-end",
+  "version": "1.0.0",
+  "author": {
+    "name": "psylch"
+  },
+  "homepage": "https://github.com/psylch/excalidraw-export-skill",
+  "repository": "https://github.com/psylch/excalidraw-export-skill",
+  "license": "MIT",
+  "keywords": ["excalidraw", "diagram", "png", "svg", "export", "flowchart", "architecture", "visualization"]
+}
