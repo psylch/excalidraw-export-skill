@@ -25,32 +25,56 @@ else
     exit 1
 fi
 
-# 2. Check/install SVG->PNG backend
+# 2. Check/install fonttools + brotli (for text-to-path font extraction)
 echo
-echo "Checking SVG-to-PNG backend..."
-if command -v resvg &>/dev/null; then
-    ok "resvg is installed (recommended, best CJK support)"
-elif command -v rsvg-convert &>/dev/null; then
-    ok "rsvg-convert is available (via librsvg)"
-elif python3 -c "import cairosvg" 2>/dev/null; then
-    ok "cairosvg is installed (note: may have issues with embedded woff2 fonts)"
+echo "Checking Python packages (fonttools + brotli)..."
+NEED_PIP=0
+if python3 -c "from fontTools.pens.svgPathPen import SVGPathPen" 2>/dev/null; then
+    ok "fonttools is installed"
 else
-    warn "No SVG-to-PNG backend found"
+    warn "fonttools not found"
+    NEED_PIP=1
+fi
+if python3 -c "import brotli" 2>/dev/null; then
+    ok "brotli is installed"
+else
+    warn "brotli not found (needed for woff2 decompression)"
+    NEED_PIP=1
+fi
+if [ "$NEED_PIP" -eq 1 ]; then
+    echo "  Installing fonttools + brotli..."
+    if pip3 install fonttools brotli 2>/dev/null; then
+        ok "fonttools + brotli installed"
+    else
+        warn "Could not auto-install. Run: pip install fonttools brotli"
+    fi
+fi
+
+# 3. Check/install resvg (SVG-to-PNG rasterizer)
+echo
+echo "Checking resvg..."
+if command -v resvg &>/dev/null; then
+    ok "resvg is installed (recommended PNG backend)"
+else
+    warn "resvg not found"
     echo "  Installing resvg via Homebrew..."
     if command -v brew &>/dev/null && brew install resvg 2>/dev/null; then
         ok "resvg installed successfully"
     else
-        warn "Could not auto-install resvg"
-        echo "  Please install manually (pick one):"
-        echo "    brew install resvg         (recommended, best CJK support)"
-        echo "    brew install librsvg       (rsvg-convert)"
-        echo "    pip install cairosvg       (may have font issues)"
-        echo
-        echo "  SVG output will still work, but PNG export requires one of these."
+        warn "Could not auto-install resvg. Run: brew install resvg"
     fi
 fi
 
-# 3. Test kroki.io connectivity
+# 4. Check Chrome (optional fallback)
+echo
+echo "Checking Chrome (optional fallback)..."
+if [ -f "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ] || command -v google-chrome &>/dev/null; then
+    ok "Google Chrome found (optional fallback)"
+else
+    echo "  Not found. This is optional — resvg + fonttools is the primary backend."
+fi
+
+# 5. Test kroki.io connectivity
 echo
 echo "Testing kroki.io connectivity..."
 if python3 -c "

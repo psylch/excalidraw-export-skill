@@ -10,7 +10,7 @@
 | 输出 | PNG 图片、SVG 图片、.excalidraw 源文件 |
 | 图表类型 | 流程图、架构图、思维导图、时序图、ER 图、类图、泳道图、数据流图 |
 | 渲染引擎 | [kroki.io](https://kroki.io)（开源） |
-| PNG 转换 | Chrome headless（推荐）、resvg、rsvg-convert 或 cairosvg |
+| PNG 转换 | text-to-path + resvg（推荐）、Chrome headless（备选） |
 
 ## 安装
 
@@ -39,11 +39,12 @@ cp -r excalidraw-export-skill/skills/excalidraw-export ~/.claude/skills/
 ## 前置条件
 
 - Python 3.8+
-- Google Chrome（推荐，PNG 输出可完美渲染手绘字体）
+- `resvg` — 高性能 SVG 转 PNG 光栅化器（`brew install resvg`）
+- `fonttools` + `brotli` — 提取内嵌字体，将文字转为路径（`pip install fonttools brotli`）
 - 网络连接（kroki.io 用于 SVG 渲染）
-- 备选 PNG 后端：`brew install resvg` 或 `brew install librsvg` 或 `pip install cairosvg`
+- Google Chrome — 可选备选方案（安装了 resvg + fonttools 则不需要）
 
-运行检查脚本：
+运行检查脚本（自动安装缺失依赖）：
 
 ```bash
 bash ~/.agents/skills/excalidraw-export/scripts/setup.sh
@@ -74,7 +75,10 @@ Skill 会自动生成图表并导出为 PNG 图片。
 kroki.io API -> SVG（内嵌 Excalifont + Xiaolai woff2 字体）
   |
   v
-Chrome headless -> PNG（2x 视网膜分辨率，完美字体渲染）
+fonttools 提取 woff2 字形 -> <text> 转换为 <path>
+  |
+  v
+resvg -> PNG（2x 视网膜分辨率，手绘字体完美保留）
   |
   v
 交付：.png + .excalidraw 源文件
@@ -83,7 +87,6 @@ Chrome headless -> PNG（2x 视网膜分辨率，完美字体渲染）
 ## 已知限制
 
 - 需要网络连接（kroki.io 在服务端渲染 SVG）
-- Chrome headless 才能完美渲染手绘字体（Excalifont + Xiaolai CJK），备选后端会丢失手绘风格
 - 建议每张图不超过 20 个元素
 
 ## 许可证

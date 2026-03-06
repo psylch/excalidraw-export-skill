@@ -29,13 +29,12 @@ bash <SKILL_DIR>/scripts/setup.sh
 
 Required:
 - Python 3.8+
-- Google Chrome (for PNG with perfect hand-drawn font rendering)
+- `resvg` (`brew install resvg`) — fast SVG-to-PNG rasterizer
+- `fonttools` + `brotli` (`pip install fonttools brotli`) — extracts embedded hand-drawn fonts from SVG and converts `<text>` to `<path>`, preserving Excalifont + Xiaolai without a browser
 - Internet access (uses kroki.io for rendering)
 
-Fallback PNG backends (if Chrome unavailable):
-- `resvg` (`brew install resvg`) — loses hand-drawn fonts, uses system fonts
-- `rsvg-convert` (`brew install librsvg`)
-- `cairosvg` (`pip install cairosvg`) — may show CJK as boxes
+Optional fallback:
+- Google Chrome — used as fallback if resvg/fonttools unavailable
 
 If only SVG output is needed, no extra tools are required.
 
@@ -60,7 +59,7 @@ Create a valid `.excalidraw` file following the schema. Read the reference docs 
 - Read `<SKILL_DIR>/references/element-types.md` for element specifications
 
 **Critical rules:**
-- All text elements MUST use `fontFamily: 5` (Excalifont) for the hand-drawn style. This is excalidraw's current default font. kroki.io will auto-embed Excalifont (hand-drawn Latin) + Xiaolai (hand-drawn CJK) as woff2. Chrome headless renders both perfectly.
+- All text elements MUST use `fontFamily: 5` (Excalifont) for the hand-drawn style. This is excalidraw's current default font. kroki.io will auto-embed Excalifont (hand-drawn Latin) + Xiaolai (hand-drawn CJK) as woff2. The export script extracts these glyphs and converts `<text>` to `<path>`, so resvg renders the hand-drawn fonts perfectly without a browser.
 - `fontFamily: 1` (Virgil) is **deprecated** — kroki will NOT embed Xiaolai for it, causing CJK to fall back to system fonts
 - Only use `fontFamily: 3` (Cascadia) for code identifiers / monospace text
 - All IDs must be unique
@@ -153,26 +152,22 @@ The .excalidraw file can be edited at https://excalidraw.com or with the VS Code
 | Issue | Solution |
 |-------|----------|
 | kroki.io unreachable | Check internet; output .excalidraw only, inform user to export manually |
-| cairosvg not installed | Fall back to SVG output; suggest `pip install cairosvg` |
-| CJK text shows as boxes | Ensure Chrome headless is used (not cairosvg); use `fontFamily: 5` so kroki embeds Xiaolai |
+| fonttools/brotli not installed | Run `pip install fonttools brotli`; falls back to Chrome or system fonts |
+| CJK text shows as boxes | Use `fontFamily: 5` so kroki embeds Xiaolai; ensure fonttools+brotli installed for text-to-path |
 | Elements overlap | Increase spacing; use 200-300px horizontal gap |
 | Too many elements | Break into multiple diagrams; suggest high-level + detail views |
 
-## PNG Backend Degradation
+## PNG Backend Priority
 
 | Backend | Hand-drawn English | Hand-drawn CJK | Notes |
 |---------|---|---|---|
-| Chrome headless | ✅ Excalifont | ✅ Xiaolai | Perfect woff2 rendering |
-| resvg | ❌ System font | ❌ System font | Ignores @font-face |
-| rsvg-convert | ❌ System font | ❌ System font | Ignores @font-face |
-| cairosvg | ❌ System font | ❌ Boxes | Cannot render woff2 |
-
-If Chrome is unavailable, inform the user that hand-drawn fonts will be lost and offer SVG-only output as an alternative.
+| text-to-path + resvg | ✅ Excalifont | ✅ Xiaolai | Recommended. Extracts woff2 glyphs via fonttools, converts `<text>` → `<path>`. Fast, no browser. |
+| Chrome headless | ✅ Excalifont | ✅ Xiaolai | Fallback. Renders @font-face natively but heavy (~500MB). |
+| resvg (no fonttools) | ❌ System font | ❌ System font | Last resort. Ignores @font-face, uses system fonts. |
 
 ## Limitations
 
 - Requires internet access (kroki.io for SVG rendering)
-- CJK requires Chrome headless for perfect rendering (resvg/cairosvg may have font issues)
 - Maximum recommended: 20 elements per diagram
 - No embedded image support in auto-generation
 - Hand-drawn roughness uses default settings

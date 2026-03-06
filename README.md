@@ -10,7 +10,7 @@ Generate Excalidraw diagrams from natural language and export to PNG/SVG images,
 | Output | PNG image, SVG image, .excalidraw source |
 | Diagram types | Flowchart, architecture, mind map, sequence, ER, class, swimlane, DFD |
 | Rendering | [kroki.io](https://kroki.io) (open-source) |
-| PNG conversion | Chrome headless (recommended), resvg, rsvg-convert, or cairosvg |
+| PNG conversion | text-to-path + resvg (recommended), Chrome headless (fallback) |
 
 ## Installation
 
@@ -39,11 +39,12 @@ Restart Claude Code after installation.
 ## Prerequisites
 
 - Python 3.8+
-- Google Chrome (recommended for PNG with perfect hand-drawn font rendering)
+- `resvg` — fast SVG-to-PNG rasterizer (`brew install resvg`)
+- `fonttools` + `brotli` — extracts embedded fonts, converts text to paths (`pip install fonttools brotli`)
 - Internet access (kroki.io for SVG rendering)
-- Fallback PNG backends: `brew install resvg` or `brew install librsvg` or `pip install cairosvg`
+- Google Chrome — optional fallback (not needed if resvg + fonttools installed)
 
-Run the setup script to check:
+Run the setup script to check and auto-install:
 
 ```bash
 bash ~/.agents/skills/excalidraw-export/scripts/setup.sh
@@ -74,7 +75,10 @@ User description
   kroki.io API -> SVG (with embedded Excalifont + Xiaolai woff2)
        |
        v
-  Chrome headless -> PNG (2x retina, perfect font rendering)
+  fonttools extracts woff2 glyphs -> <text> converted to <path>
+       |
+       v
+  resvg -> PNG (2x retina, hand-drawn fonts preserved)
        |
        v
   Delivered: .png + .excalidraw source
@@ -105,7 +109,6 @@ excalidraw-export-skill/
 ## Known Limitations
 
 - Requires internet (kroki.io renders SVG server-side)
-- Chrome headless required for perfect hand-drawn fonts (Excalifont + Xiaolai for CJK); fallback backends lose hand-drawn style
 - Max ~20 elements per diagram for readability
 
 ## License
