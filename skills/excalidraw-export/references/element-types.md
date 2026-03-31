@@ -6,12 +6,27 @@ Detailed specifications for each Excalidraw element type with visual examples an
 
 | Type | Visual | Primary Use | Text Support |
 |------|--------|-------------|--------------|
-| `rectangle` | □ | Boxes, containers, process steps | ✅ Yes |
-| `ellipse` | ○ | Emphasis, terminals, states | ✅ Yes |
-| `diamond` | ◇ | Decision points, choices | ✅ Yes |
+| `rectangle` | □ | Boxes, containers, process steps | ✅ Via bound text element |
+| `ellipse` | ○ | Emphasis, terminals, states | ✅ Via bound text element |
+| `diamond` | ◇ | Decision points, choices | ✅ Via bound text element |
 | `arrow` | → | Directional flow, relationships | ❌ No (use separate text) |
 | `line` | — | Connections, dividers | ❌ No |
 | `text` | A | Labels, annotations, titles | ✅ (Its purpose) |
+
+### How Text Inside Shapes Works
+
+Text inside shapes requires **two elements**: the shape + a bound text element.
+
+The shape lists the text in `boundElements`, and the text element has `containerId` pointing back:
+
+```json
+[
+  {"id": "s1", "type": "rectangle", "boundElements": [{"id": "s1-text", "type": "text"}], "...": "..."},
+  {"id": "s1-text", "type": "text", "containerId": "s1", "text": "Label", "originalText": "Label", "autoResize": true, "lineHeight": 1.25, "...": "..."}
+]
+```
+
+See `excalidraw-schema.md` → "Text Inside Shapes" for full details and positioning formula.
 
 ---
 
@@ -25,10 +40,7 @@ Detailed specifications for each Excalidraw element type with visual examples an
 {
   type: "rectangle",
   roundness: { type: 3 },  // Rounded corners
-  text: "Step Name",       // Optional embedded text
-  fontSize: 20,
-  textAlign: "center",
-  verticalAlign: "middle"
+  boundElements: [{ id: "textId", type: "text" }]  // Link to bound text
 }
 ```
 
@@ -52,19 +64,36 @@ Detailed specifications for each Excalidraw element type with visual examples an
 ### Example
 
 ```json
-{
-  "type": "rectangle",
-  "x": 100,
-  "y": 100,
-  "width": 200,
-  "height": 80,
-  "backgroundColor": "#b2f2bb",
-  "text": "Validate Input",
-  "fontSize": 20,
-  "textAlign": "center",
-  "verticalAlign": "middle",
-  "roundness": { "type": 3 }
-}
+[
+  {
+    "id": "step1",
+    "type": "rectangle",
+    "x": 100,
+    "y": 100,
+    "width": 200,
+    "height": 80,
+    "backgroundColor": "#b2f2bb",
+    "roundness": { "type": 3 },
+    "boundElements": [{"id": "step1-text", "type": "text"}]
+  },
+  {
+    "id": "step1-text",
+    "type": "text",
+    "x": 121,
+    "y": 115,
+    "width": 158,
+    "height": 25,
+    "text": "Validate Input",
+    "fontSize": 20,
+    "fontFamily": 5,
+    "textAlign": "center",
+    "verticalAlign": "middle",
+    "containerId": "step1",
+    "originalText": "Validate Input",
+    "autoResize": true,
+    "lineHeight": 1.25
+  }
+]
 ```
 
 ---
@@ -78,10 +107,7 @@ Detailed specifications for each Excalidraw element type with visual examples an
 ```typescript
 {
   type: "ellipse",
-  text: "Start",
-  fontSize: 18,
-  textAlign: "center",
-  verticalAlign: "middle"
+  boundElements: [{ id: "textId", type: "text" }]
 }
 ```
 
@@ -107,18 +133,35 @@ For circular shapes, use `width === height`:
 ### Example
 
 ```json
-{
-  "type": "ellipse",
-  "x": 100,
-  "y": 100,
-  "width": 120,
-  "height": 120,
-  "backgroundColor": "#d0f0c0",
-  "text": "Start",
-  "fontSize": 18,
-  "textAlign": "center",
-  "verticalAlign": "middle"
-}
+[
+  {
+    "id": "start1",
+    "type": "ellipse",
+    "x": 100,
+    "y": 100,
+    "width": 120,
+    "height": 120,
+    "backgroundColor": "#d0f0c0",
+    "boundElements": [{"id": "start1-text", "type": "text"}]
+  },
+  {
+    "id": "start1-text",
+    "type": "text",
+    "x": 127,
+    "y": 136,
+    "width": 65,
+    "height": 23,
+    "text": "Start",
+    "fontSize": 18,
+    "fontFamily": 5,
+    "textAlign": "center",
+    "verticalAlign": "middle",
+    "containerId": "start1",
+    "originalText": "Start",
+    "autoResize": true,
+    "lineHeight": 1.25
+  }
+]
 ```
 
 ---
@@ -132,10 +175,7 @@ For circular shapes, use `width === height`:
 ```typescript
 {
   type: "diamond",
-  text: "Valid?",
-  fontSize: 18,
-  textAlign: "center",
-  verticalAlign": "middle"
+  boundElements: [{ id: "textId", type: "text" }]
 }
 ```
 
@@ -160,18 +200,35 @@ Diamonds need more space than rectangles for the same text:
 ### Example
 
 ```json
-{
-  "type": "diamond",
-  "x": 100,
-  "y": 100,
-  "width": 150,
-  "height": 150,
-  "backgroundColor": "#ffe4a3",
-  "text": "Valid?",
-  "fontSize": 18,
-  "textAlign": "center",
-  "verticalAlign": "middle"
-}
+[
+  {
+    "id": "decision1",
+    "type": "diamond",
+    "x": 100,
+    "y": 100,
+    "width": 150,
+    "height": 150,
+    "backgroundColor": "#ffe4a3",
+    "boundElements": [{"id": "decision1-text", "type": "text"}]
+  },
+  {
+    "id": "decision1-text",
+    "type": "text",
+    "x": 127,
+    "y": 152,
+    "width": 65,
+    "height": 23,
+    "text": "Valid?",
+    "fontSize": 18,
+    "fontFamily": 5,
+    "textAlign": "center",
+    "verticalAlign": "middle",
+    "containerId": "decision1",
+    "originalText": "Valid?",
+    "autoResize": true,
+    "lineHeight": 1.25
+  }
+]
 ```
 
 ---
@@ -396,15 +453,20 @@ const height = fontSize * 1.2 * lines;
 ```json
 [
   {
-    "type": "rectangle",
     "id": "box1",
-    "x": 100,
-    "y": 100,
-    "width": 200,
-    "height": 100,
+    "type": "rectangle",
+    "x": 100, "y": 100, "width": 200, "height": 100,
+    "boundElements": [{"id": "box1-text", "type": "text"}]
+  },
+  {
+    "id": "box1-text",
+    "type": "text",
+    "x": 130, "y": 125, "width": 140, "height": 25,
     "text": "Component",
-    "textAlign": "center",
-    "verticalAlign": "middle"
+    "fontSize": 20, "fontFamily": 5,
+    "textAlign": "center", "verticalAlign": "middle",
+    "containerId": "box1", "originalText": "Component",
+    "autoResize": true, "lineHeight": 1.25
   }
 ]
 ```
@@ -414,29 +476,42 @@ const height = fontSize * 1.2 * lines;
 ```json
 [
   {
-    "type": "rectangle",
     "id": "box1",
-    "x": 100,
-    "y": 100,
-    "width": 150,
-    "height": 80,
-    "text": "Step 1"
+    "type": "rectangle",
+    "x": 100, "y": 100, "width": 150, "height": 80,
+    "boundElements": [{"id": "box1-text", "type": "text"}]
   },
   {
-    "type": "arrow",
+    "id": "box1-text",
+    "type": "text",
+    "x": 130, "y": 115, "width": 90, "height": 25,
+    "text": "Step 1",
+    "fontSize": 20, "fontFamily": 5,
+    "textAlign": "center", "verticalAlign": "middle",
+    "containerId": "box1", "originalText": "Step 1",
+    "autoResize": true, "lineHeight": 1.25
+  },
+  {
     "id": "arrow1",
-    "x": 250,
-    "y": 140,
+    "type": "arrow",
+    "x": 250, "y": 140,
     "points": [[0, 0], [100, 0]]
   },
   {
-    "type": "rectangle",
     "id": "box2",
-    "x": 350,
-    "y": 100,
-    "width": 150,
-    "height": 80,
-    "text": "Step 2"
+    "type": "rectangle",
+    "x": 350, "y": 100, "width": 150, "height": 80,
+    "boundElements": [{"id": "box2-text", "type": "text"}]
+  },
+  {
+    "id": "box2-text",
+    "type": "text",
+    "x": 380, "y": 115, "width": 90, "height": 25,
+    "text": "Step 2",
+    "fontSize": 20, "fontFamily": 5,
+    "textAlign": "center", "verticalAlign": "middle",
+    "containerId": "box2", "originalText": "Step 2",
+    "autoResize": true, "lineHeight": 1.25
   }
 ]
 ```
@@ -446,37 +521,49 @@ const height = fontSize * 1.2 * lines;
 ```json
 [
   {
-    "type": "diamond",
     "id": "decision",
-    "x": 100,
-    "y": 100,
-    "width": 140,
-    "height": 140,
-    "text": "Valid?"
+    "type": "diamond",
+    "x": 100, "y": 100, "width": 140, "height": 140,
+    "boundElements": [{"id": "decision-text", "type": "text"}]
   },
   {
-    "type": "arrow",
+    "id": "decision-text",
+    "type": "text",
+    "x": 131, "y": 148, "width": 78, "height": 23,
+    "text": "Valid?",
+    "fontSize": 18, "fontFamily": 5,
+    "textAlign": "center", "verticalAlign": "middle",
+    "containerId": "decision", "originalText": "Valid?",
+    "autoResize": true, "lineHeight": 1.25
+  },
+  {
     "id": "yes-arrow",
-    "x": 240,
-    "y": 170,
+    "type": "arrow",
+    "x": 240, "y": 170,
     "points": [[0, 0], [60, 0]]
   },
   {
-    "type": "text",
     "id": "yes-label",
-    "x": 250,
-    "y": 150,
+    "type": "text",
+    "x": 250, "y": 150,
     "text": "Yes",
-    "fontSize": 14
+    "fontSize": 14, "fontFamily": 5
   },
   {
-    "type": "rectangle",
     "id": "yes-box",
-    "x": 300,
-    "y": 140,
-    "width": 120,
-    "height": 60,
-    "text": "Process"
+    "type": "rectangle",
+    "x": 300, "y": 140, "width": 120, "height": 60,
+    "boundElements": [{"id": "yes-box-text", "type": "text"}]
+  },
+  {
+    "id": "yes-box-text",
+    "type": "text",
+    "x": 321, "y": 145, "width": 78, "height": 25,
+    "text": "Process",
+    "fontSize": 20, "fontFamily": 5,
+    "textAlign": "center", "verticalAlign": "middle",
+    "containerId": "yes-box", "originalText": "Process",
+    "autoResize": true, "lineHeight": 1.25
   }
 ]
 ```
@@ -487,8 +574,8 @@ const height = fontSize * 1.2 * lines;
 
 | When you need... | Use this element |
 |------------------|------------------|
-| Process box | `rectangle` with text |
-| Decision point | `diamond` with question |
+| Process box | `rectangle` + bound `text` element |
+| Decision point | `diamond` + bound `text` element |
 | Flow direction | `arrow` |
 | Start/End | `ellipse` |
 | Title/Header | `text` (large font) |

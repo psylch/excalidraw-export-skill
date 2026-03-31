@@ -67,31 +67,43 @@ interface BaseElement {
 interface RectangleElement extends BaseElement {
   type: "rectangle";
   roundness: { type: 3 };      // 3 = rounded corners
-  text?: string;               // Optional text inside
-  fontSize?: number;           // Font size (16-32 typical)
-  fontFamily?: number;         // 5 = Excalifont (default), 3 = Cascadia (code)
-  textAlign?: "left" | "center" | "right";
-  verticalAlign?: "top" | "middle" | "bottom";
+  boundElements: BoundElement[] | null; // Links to bound text elements
 }
 ```
 
-**Example:**
+**Example (with text inside):**
 ```json
-{
-  "id": "rect1",
-  "type": "rectangle",
-  "x": 100,
-  "y": 100,
-  "width": 200,
-  "height": 100,
-  "strokeColor": "#1e1e1e",
-  "backgroundColor": "#a5d8ff",
-  "text": "My Box",
-  "fontSize": 20,
-  "textAlign": "center",
-  "verticalAlign": "middle",
-  "roundness": { "type": 3 }
-}
+[
+  {
+    "id": "rect1",
+    "type": "rectangle",
+    "x": 100,
+    "y": 100,
+    "width": 200,
+    "height": 100,
+    "strokeColor": "#1e1e1e",
+    "backgroundColor": "#a5d8ff",
+    "roundness": { "type": 3 },
+    "boundElements": [{"id": "rect1-text", "type": "text"}]
+  },
+  {
+    "id": "rect1-text",
+    "type": "text",
+    "x": 130,
+    "y": 127,
+    "width": 140,
+    "height": 25,
+    "text": "My Box",
+    "fontSize": 20,
+    "fontFamily": 5,
+    "textAlign": "center",
+    "verticalAlign": "middle",
+    "containerId": "rect1",
+    "originalText": "My Box",
+    "autoResize": true,
+    "lineHeight": 1.25
+  }
+]
 ```
 
 ### Ellipse
@@ -99,11 +111,7 @@ interface RectangleElement extends BaseElement {
 ```typescript
 interface EllipseElement extends BaseElement {
   type: "ellipse";
-  text?: string;
-  fontSize?: number;
-  fontFamily?: number;
-  textAlign?: "left" | "center" | "right";
-  verticalAlign?: "top" | "middle" | "bottom";
+  boundElements: BoundElement[] | null;
 }
 ```
 
@@ -112,11 +120,7 @@ interface EllipseElement extends BaseElement {
 ```typescript
 interface DiamondElement extends BaseElement {
   type: "diamond";
-  text?: string;
-  fontSize?: number;
-  fontFamily?: number;
-  textAlign?: "left" | "center" | "right";
-  verticalAlign?: "top" | "middle" | "bottom";
+  boundElements: BoundElement[] | null;
 }
 ```
 
@@ -205,6 +209,62 @@ interface TextElement extends BaseElement {
 - Width ≈ `text.length * fontSize * 0.6`
 - Height ≈ `fontSize * 1.2 * numberOfLines`
 
+## Text Inside Shapes (Bound Text)
+
+Text inside shapes (rectangle, ellipse, diamond) requires **two elements**:
+
+1. The **shape** with `boundElements: [{"id": "<textId>", "type": "text"}]`
+2. A **text element** with `containerId: "<shapeId>"`
+
+The text element is positioned at the center of the shape. Required text element fields:
+
+```typescript
+interface BoundTextElement extends TextElement {
+  containerId: string;         // ID of the parent shape
+  originalText: string;        // Same as text (used for undo)
+  autoResize: true;            // Let shape control text size
+  lineHeight: number;          // 1.25 default
+}
+```
+
+**Positioning formula:**
+```
+text_x = shape_x + (shape_width - text_width) / 2
+text_y = shape_y + (shape_height - text_height) / 2
+text_width  = max_line_length * fontSize * 0.6
+text_height = fontSize * 1.25 * number_of_lines
+```
+
+**Complete example — rectangle with text:**
+```json
+[
+  {
+    "id": "step1",
+    "type": "rectangle",
+    "x": 100, "y": 100, "width": 200, "height": 80,
+    "backgroundColor": "#b2f2bb",
+    "roundness": {"type": 3},
+    "boundElements": [{"id": "step1-text", "type": "text"}]
+  },
+  {
+    "id": "step1-text",
+    "type": "text",
+    "x": 121, "y": 115, "width": 158, "height": 25,
+    "text": "Validate Input",
+    "fontSize": 20,
+    "fontFamily": 5,
+    "textAlign": "center",
+    "verticalAlign": "middle",
+    "containerId": "step1",
+    "originalText": "Validate Input",
+    "autoResize": true,
+    "lineHeight": 1.25
+  }
+]
+```
+
+> **Note:** The export script auto-converts inline `text` props on shapes to bound text elements as a safety net. But always prefer the explicit bound text pattern above — it also works when opening files in excalidraw.com.
+
 ## Bindings
 
 Bindings connect arrows to shapes:
@@ -214,6 +274,11 @@ interface Binding {
   elementId: string;           // ID of bound element
   focus: number;               // -1 to 1, position along edge
   gap: number;                 // Distance from element edge
+}
+
+interface BoundElement {
+  id: string;                  // ID of bound element (text or arrow)
+  type: "text" | "arrow";     // Type of binding
 }
 ```
 
@@ -331,6 +396,34 @@ const versionNonce = Math.floor(Math.random() * 2147483647);
       "version": 1,
       "versionNonce": 987654321,
       "isDeleted": false,
+      "boundElements": [{"id": "box1-text", "type": "text"}],
+      "updated": 1706659200000,
+      "link": null,
+      "locked": false
+    },
+    {
+      "id": "box1-text",
+      "type": "text",
+      "x": 164,
+      "y": 125,
+      "width": 72,
+      "height": 25,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "index": "a1",
+      "roundness": null,
+      "seed": 1234567891,
+      "version": 1,
+      "versionNonce": 987654322,
+      "isDeleted": false,
       "boundElements": null,
       "updated": 1706659200000,
       "link": null,
@@ -339,7 +432,11 @@ const versionNonce = Math.floor(Math.random() * 2147483647);
       "fontSize": 20,
       "fontFamily": 5,
       "textAlign": "center",
-      "verticalAlign": "middle"
+      "verticalAlign": "middle",
+      "containerId": "box1",
+      "originalText": "Hello",
+      "autoResize": true,
+      "lineHeight": 1.25
     }
   ],
   "appState": {

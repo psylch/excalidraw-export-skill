@@ -27,6 +27,129 @@ import urllib.error
 
 KROKI_URL = "https://kroki.io/excalidraw/svg"
 
+SHAPE_TYPES = {"rectangle", "ellipse", "diamond"}
+
+
+def _normalize_bound_text(scene: dict) -> dict:
+    """Convert inline text props on shapes to proper bound text elements.
+
+    Excalidraw requires text inside shapes to be a separate text element with
+    containerId pointing to the shape, and the shape listing it in boundElements.
+    Many generators (including this skill's earlier versions) used a simplified
+    inline "text" property on shapes, which kroki.io ignores.
+
+    This function detects inline text and converts it to the correct format.
+    """
+    elements = scene.get("elements", [])
+    existing_ids = {e.get("id") for e in elements}
+    new_elements = []
+    modified = False
+
+    for elem in elements:
+        etype = elem.get("type", "")
+        inline_text = elem.get("text")
+
+        # Only process shapes with inline text that don't already have bound text
+        if etype not in SHAPE_TYPES or not inline_text:
+            new_elements.append(elem)
+            continue
+
+        # Check if shape already has a bound text element (correct format)
+        bound = elem.get("boundElements") or []
+        has_bound_text = any(b.get("type") == "text" for b in bound)
+        if has_bound_text:
+            # Already correct — just strip the inline text props
+            elem_copy = {k: v for k, v in elem.items()
+                         if k not in ("text", "fontSize", "fontFamily",
+                                      "textAlign", "verticalAlign")}
+            new_elements.append(elem_copy)
+            continue
+
+        # Generate a unique text element ID
+        shape_id = elem.get("id", "shape")
+        text_id = f"{shape_id}-text"
+        counter = 0
+        while text_id in existing_ids:
+            counter += 1
+            text_id = f"{shape_id}-text-{counter}"
+        existing_ids.add(text_id)
+
+        # Extract text properties from shape, with defaults
+        font_size = elem.get("fontSize", 20)
+        font_family = elem.get("fontFamily", 5)
+        text_align = elem.get("textAlign", "center")
+        vertical_align = elem.get("verticalAlign", "middle")
+
+        # Calculate text element dimensions
+        lines = inline_text.split("\n")
+        line_height = 1.25
+        text_height = font_size * line_height * len(lines)
+        max_line_len = max(len(line) for line in lines)
+        text_width = max_line_len * font_size * 0.6
+
+        # Position text centered in shape
+        shape_x = elem.get("x", 0)
+        shape_y = elem.get("y", 0)
+        shape_w = elem.get("width", 200)
+        shape_h = elem.get("height", 100)
+        text_x = shape_x + (shape_w - text_width) / 2
+        text_y = shape_y + (shape_h - text_height) / 2
+
+        # Create bound text element
+        text_elem = {
+            "id": text_id,
+            "type": "text",
+            "x": text_x,
+            "y": text_y,
+            "width": text_width,
+            "height": text_height,
+            "angle": 0,
+            "strokeColor": elem.get("strokeColor", "#1e1e1e"),
+            "backgroundColor": "transparent",
+            "fillStyle": "solid",
+            "strokeWidth": elem.get("strokeWidth", 2),
+            "strokeStyle": "solid",
+            "roughness": elem.get("roughness", 1),
+            "opacity": elem.get("opacity", 100),
+            "groupIds": elem.get("groupIds", []),
+            "frameId": None,
+            "index": f"{elem.get('index', 'a0')}V",
+            "roundness": None,
+            "seed": (elem.get("seed", 0) + 1) % 2147483647,
+            "version": 1,
+            "versionNonce": (elem.get("versionNonce", 0) + 1) % 2147483647,
+            "isDeleted": False,
+            "boundElements": None,
+            "updated": elem.get("updated", 1706659200000),
+            "link": None,
+            "locked": False,
+            "text": inline_text,
+            "fontSize": font_size,
+            "fontFamily": font_family,
+            "textAlign": text_align,
+            "verticalAlign": vertical_align,
+            "containerId": shape_id,
+            "originalText": inline_text,
+            "autoResize": True,
+            "lineHeight": line_height,
+        }
+
+        # Update shape: add boundElements, strip inline text props
+        elem_copy = {k: v for k, v in elem.items()
+                     if k not in ("text", "fontSize", "fontFamily",
+                                  "textAlign", "verticalAlign")}
+        elem_copy["boundElements"] = list(bound) + [{"id": text_id, "type": "text"}]
+
+        new_elements.append(elem_copy)
+        new_elements.append(text_elem)
+        modified = True
+
+    if modified:
+        scene = dict(scene)
+        scene["elements"] = new_elements
+
+    return scene
+
 
 def excalidraw_to_svg(input_path: str, dark: bool = False) -> bytes:
     """Convert .excalidraw JSON to SVG via kroki.io."""
@@ -40,13 +163,17 @@ def excalidraw_to_svg(input_path: str, dark: bool = False) -> bytes:
         print(json.dumps({"status": "error", "error": f"Invalid JSON in {input_path}: {e}", "hint": "Check the .excalidraw file syntax", "recoverable": False}), file=sys.stderr)
         sys.exit(2)
 
+    # Normalize inline text on shapes to proper bound text elements
+    scene = _normalize_bound_text(scene)
+
     # Apply dark theme if requested
     if dark:
         if "appState" not in scene:
             scene["appState"] = {}
         scene["appState"]["exportWithDarkMode"] = True
         scene["appState"]["viewBackgroundColor"] = "#1e1e1e"
-        data = json.dumps(scene)
+
+    data = json.dumps(scene)
 
     req = urllib.request.Request(
         KROKI_URL,
